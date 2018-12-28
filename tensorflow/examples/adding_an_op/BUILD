@@ -3,16 +3,13 @@
 
 package(
     default_visibility = ["//tensorflow:internal"],
-    features = [
-        "-layering_check",
-        "-parse_headers",
-    ],
 )
 
 licenses(["notice"])  # Apache 2.0
 
 load("//tensorflow:tensorflow.bzl", "tf_custom_op_library")
 load("//tensorflow:tensorflow.bzl", "tf_cuda_tests_tags")
+load("//tensorflow:tensorflow.bzl", "tf_cc_binary")
 
 exports_files(["LICENSE"])
 
@@ -26,6 +23,7 @@ py_library(
     srcs = ["zero_out_op_1.py"],
     data = [":zero_out_op_kernel_1.so"],
     srcs_version = "PY2AND3",
+    deps = ["//tensorflow:tensorflow_py"],
 )
 
 tf_custom_op_library(
@@ -38,6 +36,7 @@ py_library(
     srcs = ["zero_out_op_2.py"],
     data = [":zero_out_op_kernel_2.so"],
     srcs_version = "PY2AND3",
+    deps = ["//tensorflow:tensorflow_py"],
 )
 
 tf_custom_op_library(
@@ -50,6 +49,7 @@ py_library(
     srcs = ["zero_out_op_3.py"],
     data = [":zero_out_op_kernel_3.so"],
     srcs_version = "PY2AND3",
+    deps = ["//tensorflow:tensorflow_py"],
 )
 
 py_library(
@@ -57,8 +57,6 @@ py_library(
     srcs = ["zero_out_grad_2.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":zero_out_op_2",
-        "//tensorflow:tensorflow_py",
         "//tensorflow/python:array_ops",
         "//tensorflow/python:framework_for_generated_wrappers",
         "//tensorflow/python:sparse_ops",
@@ -70,10 +68,10 @@ py_test(
     size = "small",
     srcs = ["zero_out_1_test.py"],
     srcs_version = "PY2AND3",
+    tags = ["notap"],
     deps = [
         ":zero_out_op_1",
         "//tensorflow:tensorflow_py",
-        "//third_party/py/numpy",
     ],
 )
 
@@ -82,6 +80,7 @@ py_test(
     size = "small",
     srcs = ["zero_out_2_test.py"],
     srcs_version = "PY2AND3",
+    tags = ["notap"],
     deps = [
         ":zero_out_grad_2",
         ":zero_out_op_2",
@@ -94,10 +93,10 @@ py_test(
     size = "small",
     srcs = ["zero_out_3_test.py"],
     srcs_version = "PY2AND3",
+    tags = ["notap"],
     deps = [
         ":zero_out_op_3",
         "//tensorflow:tensorflow_py",
-        "//third_party/py/numpy",
     ],
 )
 
@@ -112,6 +111,7 @@ py_library(
     srcs = ["cuda_op.py"],
     data = [":cuda_op_kernel.so"],
     srcs_version = "PY2AND3",
+    deps = ["//tensorflow:tensorflow_py"],
 )
 
 py_test(
@@ -119,7 +119,7 @@ py_test(
     size = "small",
     srcs = ["cuda_op_test.py"],
     srcs_version = "PY2AND3",
-    tags = tf_cuda_tests_tags(),
+    tags = tf_cuda_tests_tags() + ["notap"],
     deps = [
         ":cuda_op",
         "//tensorflow:tensorflow_py",
@@ -131,27 +131,14 @@ py_test(
     size = "small",
     srcs = ["fact_test.py"],
     srcs_version = "PY2AND3",
-    deps = [
-        "//tensorflow:tensorflow_py",
-    ],
+    deps = ["//tensorflow:tensorflow_py"],
 )
 
-cc_binary(
+tf_cc_binary(
     name = "attr_examples",
     srcs = ["attr_examples.cc"],
     deps = [
         "//tensorflow/core",
+        "//tensorflow/core:framework",
     ],
-)
-
-filegroup(
-    name = "all_files",
-    srcs = glob(
-        ["**/*"],
-        exclude = [
-            "**/METADATA",
-            "**/OWNERS",
-        ],
-    ),
-    visibility = ["//tensorflow:__subpackages__"],
 )

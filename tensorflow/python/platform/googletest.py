@@ -19,7 +19,6 @@ from __future__ import division
 from __future__ import print_function
 
 import atexit
-import inspect
 import itertools
 import os
 import sys
@@ -35,6 +34,10 @@ from tensorflow.python.lib.io import file_io
 from tensorflow.python.platform import app
 from tensorflow.python.platform import benchmark
 from tensorflow.python.platform import tf_logging as logging
+from tensorflow.python.util import tf_decorator
+from tensorflow.python.util import tf_inspect
+from tensorflow.python.util.tf_export import tf_export
+
 
 Benchmark = benchmark.TensorFlowBenchmark  # pylint: disable=invalid-name
 
@@ -101,13 +104,16 @@ def GetTempDir():
   """Return a temporary directory for tests to use."""
   global _googletest_temp_dir
   if not _googletest_temp_dir:
-    first_frame = inspect.stack()[-1][0]
-    temp_dir = os.path.join(
-        tempfile.gettempdir(), os.path.basename(inspect.getfile(first_frame)))
-    temp_dir = temp_dir.rstrip('.py')
-    if not os.path.isdir(temp_dir):
-      os.mkdir(temp_dir, 0o755)
-    temp_dir = tempfile.mkdtemp(dir=temp_dir)
+    if os.environ.get('TEST_TMPDIR'):
+      temp_dir = tempfile.mkdtemp(prefix=os.environ['TEST_TMPDIR'])
+    else:
+      first_frame = tf_inspect.stack()[-1][0]
+      temp_dir = os.path.join(tempfile.gettempdir(),
+                              os.path.basename(tf_inspect.getfile(first_frame)))
+      temp_dir = tempfile.mkdtemp(prefix=temp_dir.rstrip('.py'))
+
+    # Make sure we have the correct path separators.
+    temp_dir = temp_dir.replace('/', os.sep)
 
     def delete_temp_dir(dirname=temp_dir):
       try:
@@ -116,6 +122,7 @@ def GetTempDir():
         logging.error('Error removing %s: %s', dirname, e)
 
     atexit.register(delete_temp_dir)
+
     _googletest_temp_dir = temp_dir
 
   return _googletest_temp_dir
@@ -139,6 +146,7 @@ def StatefulSessionAvailable():
   return False
 
 
+@tf_export(v1=['test.StubOutForTesting'])
 class StubOutForTesting(object):
   """Support class for stubbing methods out for unit testing.
 
@@ -207,15 +215,16 @@ class StubOutForTesting(object):
     Raises:
       AttributeError: If the attribute cannot be found.
     """
-    if (inspect.ismodule(obj) or
-        (not inspect.isclass(obj) and attr_name in obj.__dict__)):
+    _, obj = tf_decorator.unwrap(obj)
+    if (tf_inspect.ismodule(obj) or
+        (not tf_inspect.isclass(obj) and attr_name in obj.__dict__)):
       orig_obj = obj
       orig_attr = getattr(obj, attr_name)
     else:
-      if not inspect.isclass(obj):
-        mro = list(inspect.getmro(obj.__class__))
+      if not tf_inspect.isclass(obj):
+        mro = list(tf_inspect.getmro(obj.__class__))
       else:
-        mro = list(inspect.getmro(obj))
+        mro = list(tf_inspect.getmro(obj))
 
       mro.reverse()
 

@@ -21,7 +21,6 @@ limitations under the License.
 #include "tensorflow/core/graph/subgraph.h"
 #include "tensorflow/core/platform/init_main.h"
 #include "tensorflow/core/public/session.h"
-#include "tensorflow/core/util/command_line_flags.h"
 #include "tensorflow/tools/graph_transforms/transform_utils.h"
 
 namespace tensorflow {
@@ -56,6 +55,17 @@ Status FoldBatchNorms(const GraphDef& input_graph_def,
         const NodeDef& input_node = match.inputs[0].inputs[0].node;
         const NodeDef& weights_node = match.inputs[0].inputs[1].node;
         const NodeDef& mul_values_node = match.inputs[1].node;
+
+        // Check that nodes that we use are not used somewhere else.
+        for (const auto& node : {conv_node, weights_node, mul_values_node}) {
+          if (output_nodes.count(node.name())) {
+            // Return original nodes.
+            new_nodes->insert(new_nodes->end(),
+                              {mul_node, conv_node, input_node, weights_node,
+                               mul_values_node});
+            return Status::OK();
+          }
+        }
 
         Tensor weights = GetNodeTensorAttr(weights_node, "value");
         Tensor mul_values = GetNodeTensorAttr(mul_values_node, "value");
@@ -93,7 +103,7 @@ Status FoldBatchNorms(const GraphDef& input_graph_def,
         new_nodes->push_back(input_node);
 
         NodeDef new_conv_node;
-        new_conv_node.CopyFrom(conv_node);
+        new_conv_node = conv_node;
         new_conv_node.set_name(mul_node.name());
         new_nodes->push_back(new_conv_node);
 

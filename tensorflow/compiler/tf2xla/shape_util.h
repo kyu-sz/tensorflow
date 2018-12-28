@@ -18,20 +18,39 @@ limitations under the License.
 #ifndef TENSORFLOW_COMPILER_TF2XLA_SHAPE_UTIL_H_
 #define TENSORFLOW_COMPILER_TF2XLA_SHAPE_UTIL_H_
 
+#include <vector>
+
+#include "tensorflow/compiler/xla/shape.h"
+#include "tensorflow/compiler/xla/statusor.h"
 #include "tensorflow/compiler/xla/xla_data.pb.h"
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/framework/types.pb.h"
 
 namespace tensorflow {
 
-// Convert an XLA Shape into the equivalent TensorFlow shape.
-TensorShape XLAShapeToTensorShape(const xla::Shape& shape);
+// Convert an XLA Shape into the equivalent TensorFlow shape. May fail since
+// not all XLA shapes can be represented as TensorShapes.
+Status XLAShapeToTensorShape(const xla::Shape& shape,
+                             TensorShape* tensor_shape);
 
 // Convert a TensorShape into the equivalent XLA Shape proto. Unlike Tensorflow,
 // XLA shapes include the type. Not all `dtype` values can be represented by
 // XLA, so this conversion may fail.
 Status TensorShapeToXLAShape(DataType dtype, const TensorShape& tensor_shape,
                              xla::Shape* shape);
+
+// Converts a TensorShape into the equivalent XLA Shape proto, taking an
+// xla::PrimitiveType to specify the element type.  This never fails.
+xla::Shape TensorShapeToXLAShape(xla::PrimitiveType type,
+                                 const TensorShape& tensor_shape);
+
+// Given an XLA shape with layouts, builds a layout vector in the form able to
+// be fed to an InfeedEnqueue/InfeedEnqueueTuple ops.
+// THe returned vector is a linearized sequence of the minor-to-major values of
+// the layouts held within the input shape.
+// In case the input shape is a tuple, the minor-to-major values will be in the
+// order of the tuple elements within the tuple shape.
+xla::StatusOr<std::vector<int>> GetInfeedLayoutVector(const xla::Shape& shape);
 
 }  // namespace tensorflow
 

@@ -12,9 +12,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
+// LINT.IfChange
 
 #ifndef TENSORFLOW_CORE_UTIL_CTC_CTC_DECODER_H_
 #define TENSORFLOW_CORE_UTIL_CTC_CTC_DECODER_H_
+
+#include <memory>
+#include <vector>
 
 #include "third_party/eigen3/Eigen/Core"
 #include "tensorflow/core/lib/core/errors.h"
@@ -89,7 +93,6 @@ class CTCGreedyDecoder : public CTCDecoder {
       std::vector<int>& output_b = (*output)[0][b];
 
       int prev_class_ix = -1;
-      std::vector<int> transcription;
       (*scores)(b, 0) = 0;
       for (int t = 0; t < seq_len_b; ++t) {
         auto row = input[t].row(b);
@@ -98,7 +101,6 @@ class CTCGreedyDecoder : public CTCDecoder {
         if (max_class_ix != blank_index_ &&
             !(merge_repeated_ && max_class_ix == prev_class_ix)) {
           output_b.push_back(max_class_ix);
-          transcription.push_back(max_class_ix);
         }
         prev_class_ix = max_class_ix;
       }
@@ -111,3 +113,4 @@ class CTCGreedyDecoder : public CTCDecoder {
 }  // namespace tensorflow
 
 #endif  // TENSORFLOW_CORE_UTIL_CTC_CTC_DECODER_H_
+// LINT.ThenChange(//tensorflow/lite/experimental/kernels/ctc_decoder.h)

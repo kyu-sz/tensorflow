@@ -21,7 +21,6 @@ limitations under the License.
 #include "tensorflow/core/graph/subgraph.h"
 #include "tensorflow/core/platform/init_main.h"
 #include "tensorflow/core/public/session.h"
-#include "tensorflow/core/util/command_line_flags.h"
 #include "tensorflow/tools/graph_transforms/transform_utils.h"
 
 namespace tensorflow {
@@ -45,7 +44,7 @@ Status RenameOp(const GraphDef& input_graph_def,
   output_graph_def->Clear();
   for (const NodeDef& node : input_graph_def.node()) {
     NodeDef* new_node = output_graph_def->mutable_node()->Add();
-    new_node->CopyFrom(node);
+    *new_node = node;
     if (node.op() == old_op_name) {
       new_node->set_op(new_op_name);
     }
